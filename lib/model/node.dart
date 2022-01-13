@@ -1,0 +1,111 @@
+import 'package:flutter_interactive_graph/model/edge.dart';
+import 'package:flutter_interactive_graph/model/node_anchor.dart';
+import 'package:flutter/material.dart';
+
+class GraphNode {
+  GraphNode(this.id, this.type, this.offset, this.data, this.scale);
+
+  static GraphNode empty() {
+    return GraphNode('', '', const Offset(0, 0), null, 1);
+  }
+
+  final String id;
+  final dynamic data;
+  final String type;
+  Offset offset;
+  double scale;
+  GlobalKey key = GlobalKey();
+  Size size = const Size(200, 100);
+  bool top = false;
+
+  final Map<NodeAnchorType, List<NodeAnchor>> _anchors = {};
+  final List<GraphEdge> _outgoingEdges = [];
+  final List<GraphEdge> _incomingEdges = [];
+
+  @override
+  String toString() => 'Node $id';
+
+  void addAnchor(NodeAnchorType type, NodeAnchor anchor) {
+    _anchors.putIfAbsent(type, () => []);
+    _anchors[type]!.add(anchor);
+  }
+
+  void addOutgoingEdge(GraphEdge edge) {
+    _outgoingEdges.add(edge);
+  }
+
+  void addIncomingEdge(GraphEdge edge) {
+    _incomingEdges.add(edge);
+  }
+
+  void removeAnchor(NodeAnchor anchor) {
+    _anchors.remove(anchor);
+  }
+
+  void removeOutgoingEdge(GraphEdge edge) {
+    _outgoingEdges.remove(edge);
+  }
+
+  void removeIncomingEdge(GraphEdge edge) {
+    _incomingEdges.remove(edge);
+  }
+
+  void removeEdge(String id){
+    _outgoingEdges.removeWhere((e) => e.id == id);
+    _incomingEdges.removeWhere((e) => e.id == id);
+  }
+
+  List<GraphEdge> get outgoingEdges => _outgoingEdges;
+  List<GraphEdge> get incomingEdges => _incomingEdges;
+
+  void createDefaultAnchors(Size size) {
+    addAnchor(NodeAnchorType.input, NodeAnchor(this, size.centerLeft(offset),'left-middle',  NodeAnchorType.input));
+    addAnchor(NodeAnchorType.output, NodeAnchor(this, size.centerRight(offset),'right-middle', NodeAnchorType.output));
+  }
+
+  bool checkDefaultAnchorOffsets(Size size) {
+    var centerLeft = size.centerLeft(offset);
+    var centerRight = size.centerRight(offset);
+    return _anchors[NodeAnchorType.input]!.first.offset == centerLeft &&
+        _anchors[NodeAnchorType.output]!.first.offset == centerRight;
+  }
+
+  void updateDefaultAnchors(Size size) {
+    _anchors[NodeAnchorType.input]![0].updatePosition(size.centerLeft(offset));
+    _anchors[NodeAnchorType.output]![0].updatePosition(size.centerRight(offset));
+  }
+
+  // Returns all input anchors, but creates default anchors if none exist.
+  List<NodeAnchor>? get inputAnchors {
+    if (_anchors.containsKey(NodeAnchorType.input)) {
+      return _anchors[NodeAnchorType.input];
+    } else {
+      //TODO: create default anchors
+      createDefaultAnchors(size);
+      return _anchors[NodeAnchorType.input];
+    }
+  }
+
+  // Returns all output anchors, but creates default anchors if none exist.
+  List<NodeAnchor>? get outputAnchors {
+    if (_anchors.containsKey(NodeAnchorType.output)) {
+      return _anchors[NodeAnchorType.output];
+    } else {
+      //TODO: create default anchors
+      createDefaultAnchors(size);
+      return _anchors[NodeAnchorType.output];
+    }
+  }
+
+  void translate(Offset offset, Size size) {
+    this.offset += offset;
+    // Update anchors
+    for (var anchor in inputAnchors!) {
+      anchor.translate(offset);
+    }
+    for (var anchor in outputAnchors!) {
+      anchor.translate(offset);
+    }
+    updateDefaultAnchors(size);
+  }
+}
