@@ -1,6 +1,5 @@
 import 'package:flutter_interactive_graph/model/graph.dart';
 import 'package:flutter_interactive_graph/helpers/pointer_scroll_behavior.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class GraphMenuWidget extends StatefulWidget {

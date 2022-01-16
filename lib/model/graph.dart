@@ -17,6 +17,9 @@ class Graph {
 
   final Map<String, GraphNode> _nodes;
   final Map<String, GraphEdge> _edges;
+  final List<String> nodeOrder = [];
+
+  Map<String, GraphNode> get nodeMap => _nodes;
 
   Iterable<GraphNode> get nodes => _nodes.values;
   Iterable<GraphEdge> get edges => _edges.values;
@@ -29,6 +32,7 @@ class Graph {
   void addNode(GraphNode node) {
     _nodes[node.id] = node;
     addEdgesForNode(node);
+    nodeOrder.add(node.id);
   }
 
   void addAllNodes(Iterable<GraphNode> nodes) {
@@ -58,6 +62,7 @@ class Graph {
   void removeNode(String id) {
     _nodes.remove(id);
     _edges.removeWhere((key, value) => value.source == id || value.target == id);
+    nodeOrder.remove(id);
   }
   void removeEdge(String id) {
     _edges.remove(id);
@@ -89,7 +94,9 @@ class Graph {
   }
 
   int ancestorCount(GraphNode node, int count) {
-
+    if (count > 10) {
+      return count;
+    }
     if (node.incomingEdges.isNotEmpty) {
       count ++;
     }
@@ -110,9 +117,8 @@ class Graph {
 
 
   void pop(String nodeId) {
-    for (var node in nodes) {
-      node.top = false;
-    }
-    getNode(nodeId)!.top = true;
+     if (nodeOrder.remove(nodeId)) {
+       nodeOrder.add(nodeId);
+     }
   }
 }

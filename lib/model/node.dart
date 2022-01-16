@@ -3,10 +3,10 @@ import 'package:flutter_interactive_graph/model/node_anchor.dart';
 import 'package:flutter/material.dart';
 
 class GraphNode {
-  GraphNode(this.id, this.type, this.offset, this.data, this.scale);
+  GraphNode(this.id, this.type, this.offset, this.data, this.scale, this.order);
 
   static GraphNode empty() {
-    return GraphNode('', '', const Offset(0, 0), null, 1);
+    return GraphNode('', '', const Offset(0, 0), null, 1, 0);
   }
 
   final String id;
@@ -16,7 +16,7 @@ class GraphNode {
   double scale;
   GlobalKey key = GlobalKey();
   Size size = const Size(200, 100);
-  bool top = false;
+  final int order;
 
   final Map<NodeAnchorType, List<NodeAnchor>> _anchors = {};
   final List<GraphEdge> _outgoingEdges = [];
@@ -71,8 +71,8 @@ class GraphNode {
   }
 
   void updateDefaultAnchors(Size size) {
-    _anchors[NodeAnchorType.input]![0].updatePosition(size.centerLeft(offset));
-    _anchors[NodeAnchorType.output]![0].updatePosition(size.centerRight(offset));
+    _anchors[NodeAnchorType.input]?[0].updatePosition(size.centerLeft(offset));
+    _anchors[NodeAnchorType.output]?[0].updatePosition(size.centerRight(offset));
   }
 
   // Returns all input anchors, but creates default anchors if none exist.
@@ -80,7 +80,6 @@ class GraphNode {
     if (_anchors.containsKey(NodeAnchorType.input)) {
       return _anchors[NodeAnchorType.input];
     } else {
-      //TODO: create default anchors
       createDefaultAnchors(size);
       return _anchors[NodeAnchorType.input];
     }
@@ -91,7 +90,6 @@ class GraphNode {
     if (_anchors.containsKey(NodeAnchorType.output)) {
       return _anchors[NodeAnchorType.output];
     } else {
-      //TODO: create default anchors
       createDefaultAnchors(size);
       return _anchors[NodeAnchorType.output];
     }

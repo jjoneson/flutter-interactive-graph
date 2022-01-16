@@ -1,13 +1,5 @@
 import 'package:flutter_interactive_graph/model/node.dart';
-import 'package:flutter_interactive_graph/helpers/elevation.dart';
 import 'package:flutter/material.dart';
-
-extension Elevate on GraphNodeWidget {
-  Elevated elevate(num i) => Elevation(
-        child: this,
-        elevation: i,
-      );
-}
 
 class GraphNodeWidget extends StatefulWidget {
   const GraphNodeWidget(

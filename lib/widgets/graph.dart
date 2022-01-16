@@ -12,6 +12,7 @@ class GraphWidget extends StatefulWidget {
   final Graph? graph;
 
   final num topMargin;
+
   // final TrackedAPIDocument tracker;
 
   final dynamic dataset;
@@ -25,8 +26,8 @@ class GraphWidget extends StatefulWidget {
       required this.dataset})
       : super(key: key);
 
-  Widget Function(GlobalKey key, String name, dynamic data, Graph graph, VoidCallback notify, GraphNode node, dynamic dataset)
-      graphChildBuilder;
+  Widget Function(GlobalKey key, String name, dynamic data, Graph graph,
+      VoidCallback notify, GraphNode node, dynamic dataset) graphChildBuilder;
 
   Widget Function(GlobalKey key, String name, dynamic data, Graph graph)?
       menuChildBuilder;
@@ -35,16 +36,14 @@ class GraphWidget extends StatefulWidget {
   GraphWidgetState createState() => GraphWidgetState();
 }
 
-class GraphWidgetState extends State<GraphWidget>
-    with SingleTickerProviderStateMixin {
+class GraphWidgetState extends State<GraphWidget> {
   final GlobalKey _edgeKey = GlobalKey();
   final GlobalKey _flowKey = GlobalKey();
   bool sidePanelOpen = false;
 
-
   @override
   void initState() {
-        super.initState();
+    super.initState();
   }
 
   @override
@@ -65,7 +64,7 @@ class GraphWidgetState extends State<GraphWidget>
               behavior: HitTestBehavior.opaque,
               onPointerSignal: _onPointerSignal,
               child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
+                  behavior: HitTestBehavior.deferToChild,
                   onPanUpdate: (details) {
                     setState(() {
                       widget.graph!.origin = widget.graph!.origin +
@@ -77,29 +76,29 @@ class GraphWidgetState extends State<GraphWidget>
                       fit: StackFit.loose,
                       clipBehavior: Clip.hardEdge,
                       children: [
-
                         // ...graphNodes,
                         Flow(
                             key: _flowKey,
                             delegate: FlowGraphDelegate(graph: widget.graph),
-                            children:[
-                            CustomPaint(
-                              size: Size(xMax, yMax),
-                              painter: GridPainter(
-                                  context: context,
-                                  scale: widget.graph!.scale,
-                                  origin: widget.graph!.origin),
-                            ),
-                            CustomPaint(
-                              key: _edgeKey,
-                              size: Size(xMax, yMax),
-                              painter: EdgePainter(
-                                  nodes: graphNodes,
-                                  origin: widget.graph!.origin,
-                                  scale: widget.graph!.scale,
-                                  context: context),
-                            ),
-                            ...graphNodes])
+                            children: [
+                              CustomPaint(
+                                size: Size(xMax, yMax),
+                                painter: GridPainter(
+                                    context: context,
+                                    scale: widget.graph!.scale,
+                                    origin: widget.graph!.origin),
+                              ),
+                              CustomPaint(
+                                key: _edgeKey,
+                                size: Size(xMax, yMax),
+                                painter: EdgePainter(
+                                    nodes: graphNodes,
+                                    origin: widget.graph!.origin,
+                                    scale: widget.graph!.scale,
+                                    context: context),
+                              ),
+                              ...graphNodes
+                            ])
                       ]))),
           GraphMenuWidget(
               sidePanelOpen: sidePanelOpen,
@@ -120,8 +119,8 @@ class GraphWidgetState extends State<GraphWidget>
               topMargin: widget.topMargin,
               scale: widget.graph!.scale,
               origin: widget.graph!.origin,
-              child: widget.graphChildBuilder(
-                  node.key, node.id, node.data, widget.graph!, notify, node, widget.dataset),
+              child: widget.graphChildBuilder(node.key, node.id, node.data,
+                  widget.graph!, notify, node, widget.dataset),
               pop: pop,
               notify: notify,
               childKey: node.key,
@@ -136,52 +135,45 @@ class GraphWidgetState extends State<GraphWidget>
   }
 
   void _onPointerSignal(PointerSignalEvent pointerSignal) {
-    if (pointerSignal is PointerScrollEvent) {
-      if (pointerSignal.scrollDelta.dy == 1) {
-        return;
+    GestureBinding.instance!.pointerSignalResolver.register(pointerSignal,
+        (PointerSignalEvent pointerSignal) {
+      if (pointerSignal is PointerScrollEvent) {
+        if (pointerSignal.scrollDelta.dy == 1) {
+          return;
+        }
+
+        //pointer offset relative to origin
+        final Offset offset =
+            pointerSignal.position / widget.graph!.scale - widget.graph!.origin;
+
+        // zoom in
+        if (pointerSignal.scrollDelta.dy < 0) {
+          widget.graph!.scale += 0.06;
+
+          // zoom out
+        } else {
+          widget.graph!.scale -= 0.06;
+        }
+
+        // move origin to keep pointer in same position
+
+        // return if widget scale is out of bounds
+        if (widget.graph!.scale < 0.1) {
+          widget.graph!.scale = 0.1;
+          return;
+        } else if (widget.graph!.scale > 1) {
+          widget.graph!.scale = 1;
+          return;
+        }
+
+        setState(() {
+          widget.graph!.scale = widget.graph!.scale.clamp(0.1, 1);
+          widget.graph!.origin =
+              pointerSignal.position / widget.graph!.scale - offset;
+        });
       }
-
-      //pointer offset relative to origin
-      final Offset offset =
-          pointerSignal.position / widget.graph!.scale - widget.graph!.origin;
-
-      // zoom in
-      if (pointerSignal.scrollDelta.dy < 0) {
-        widget.graph!.scale += 0.06;
-
-        // zoom out
-      } else {
-        widget.graph!.scale -= 0.06;
-      }
-
-      // move origin to keep pointer in same position
-
-      // return if widget scale is out of bounds
-      if (widget.graph!.scale < 0.1) {
-        widget.graph!.scale = 0.1;
-        return;
-      } else if (widget.graph!.scale > 1) {
-        widget.graph!.scale = 1;
-        return;
-      }
-
-      setState(() {
-        widget.graph!.scale = widget.graph!.scale.clamp(0.1, 1);
-        widget.graph!.origin =
-            pointerSignal.position / widget.graph!.scale - offset;
-      });
-    }
+    });
   }
-
-  // void updateEdges() {
-  //   Future.delayed(const Duration(milliseconds: 400), () {
-  //     if (widget.graph == null) return;
-  //
-  //     if (!widget.graph!.checkDefaultAnchorOffsets()) {
-  //       setState(() {});
-  //     }
-  //   });
-  // }
 
   void toggleSidePanel() {
     setState(() {
@@ -190,9 +182,7 @@ class GraphWidgetState extends State<GraphWidget>
   }
 
   void notify() {
-    setState(() {
-
-    });
+    setState(() {});
   }
 
   void pop(String nodeId) {
@@ -224,32 +214,17 @@ class FlowGraphDelegate extends FlowDelegate {
     context.paintChild(0);
     context.paintChild(1);
 
-    //draw the nodes, but save the top node for last
-    i = 2;
-    var topIndex = -1;
-    GraphNode topNode = GraphNode.empty();
-    for (var node in graph!.nodes) {
-      if (node.top) {
-        topIndex = i;
-        topNode = node;
-      } else {
-        context.paintChild(i,
-            transform: Matrix4.translationValues(
-                (node.offset.dx + graph!.origin.dx) * graph!.scale,
-                (node.offset.dy + graph!.origin.dy) * graph!.scale,
-                0));
-      }
-      i++;
-    }
+    // need to paint the nodes in the order of nodeOrder
 
-    if (topIndex != -1) {
-      context.paintChild(topIndex,
+
+    for (var nodeId in graph!.nodeOrder) {
+      var node = graph!.nodeMap[nodeId];
+      context.paintChild(node!.order + 2,
           transform: Matrix4.translationValues(
-              (topNode.offset.dx + graph!.origin.dx) * graph!.scale,
-              (topNode.offset.dy + graph!.origin.dy) * graph!.scale,
+              (node.offset.dx + graph!.origin.dx) * graph!.scale,
+              (node.offset.dy + graph!.origin.dy) * graph!.scale,
               0));
     }
-
   }
 
   @override

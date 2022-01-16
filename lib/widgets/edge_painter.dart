@@ -30,9 +30,6 @@ class EdgePainter extends CustomPainter {
         final start = (edge.sourceAnchor.offset + origin) * scale;
         final end = (edge.targetAnchor.offset + origin) * scale;
 
-        final controlPoint1 = controlPoint(start, end, Tuple2(weight, weight));
-        final controlPoint2 = controlPoint(end, start, Tuple2(weight, weight));
-
         final paint = Paint()
           ..color = Theme.of(context).primaryColorLight
           ..style = PaintingStyle.stroke
@@ -42,13 +39,6 @@ class EdgePainter extends CustomPainter {
 
         GraphNode sourceNode = edge.sourceAnchor.node;
         GraphNode targetNode = edge.targetAnchor.node;
-
-        double minX = min(sourceNode.offset.dx, targetNode.offset.dx);
-        double minY = min(sourceNode.offset.dy, targetNode.offset.dy);
-        double maxX = max(sourceNode.offset.dx + sourceNode.size.width, targetNode.offset.dx + targetNode.size.width);
-        double maxY = max(sourceNode.offset.dy + sourceNode.size.height, targetNode.offset.dy + targetNode.size.height);
-
-        Size maxSize = Size(maxX - minX, maxY - minY);
 
         Path path = orthogonalPath(start, end, mid, 10, sourceNode.size.height * scale, targetNode.size.height * scale);
         path = dashPath(path,
@@ -83,10 +73,8 @@ class EdgePainter extends CustomPainter {
     var midCurveEndX1 = endX3;
     var midCurveEndX2 = endX2;
 
-    // if ((start.dy - end.dy).abs() < padding*6) {
     var scaledPadding =
         ((end.dx - padding * 2) - (start.dx + padding * 2)).abs() / 2;
-    //
     if ((start.dx - end.dx).abs() < padding * 6) {
       midCurveStartX2 = startX2 - scaledPadding / 4;
       midCurveEndX1 = endX2 + scaledPadding / 4;
@@ -102,14 +90,6 @@ class EdgePainter extends CustomPainter {
       curveDelta2 = -curveDelta2;
     }
 
-    // return Path()
-    //   ..moveTo(start.dx, start.dy)
-    //   ..lineTo(startX1, start.dy)
-    //   ..quadraticBezierTo(startX2, start.dy, startX2, start.dy + curveDelta1)
-    //   ..lineTo(startX2, end.dy - curveDelta2)
-    //   ..quadraticBezierTo(startX2, end.dy, startX2 + curveDelta2, end.dy)
-    //   ..lineTo(end.dx, end.dy);
-
     return Path()
       ..moveTo(start.dx, start.dy)
       ..lineTo(startX1, start.dy)
@@ -122,23 +102,6 @@ class EdgePainter extends CustomPainter {
       ..lineTo(midCurveEndX2, end.dy - curveDelta2)
       ..quadraticBezierTo(endX2, end.dy, endX1, end.dy)
       ..lineTo(end.dx, end.dy);
-
-    // return Path()
-    //   ..moveTo(start.dx, start.dy)
-    //   ..lineTo(controlPoint.dx, controlPoint.dy)
-    //   ..lineTo(end.dx, end.dy);
-  }
-
-  Offset controlPoint(
-      Offset previousPoint, Offset point, Tuple2<double, double> weight) {
-    return smoothControlPoint(Offset(point.dx, previousPoint.dy),
-        Offset(previousPoint.dx, point.dy), weight);
-  }
-
-  Offset smoothControlPoint(
-      Offset point1, Offset point2, Tuple2<double, double> weight) {
-    return Offset(point1.dx + (point2.dx - point1.dx) * weight.item1,
-        point1.dy + (point2.dy - point1.dy) * weight.item2);
   }
 
   @override
