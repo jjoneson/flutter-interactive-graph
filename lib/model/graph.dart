@@ -8,12 +8,14 @@ import 'node.dart';
 class Graph {
   Graph(this._nodes, this._edges);
 
-  static Graph empty(){
+  static Graph empty() {
     return Graph({}, {});
   }
 
   Offset origin = const Offset(0, 0);
   double scale = 1.0;
+  double defaultVerticalSpacing = 100.0;
+  Map<String, Graph> subGraphs = {};
 
   final Map<String, GraphNode> _nodes;
   final Map<String, GraphEdge> _edges;
@@ -22,17 +24,24 @@ class Graph {
   Map<String, GraphNode> get nodeMap => _nodes;
 
   Iterable<GraphNode> get nodes => _nodes.values;
+
   Iterable<GraphEdge> get edges => _edges.values;
 
   GraphNode? getNode(String id) => _nodes[id];
+
   GraphEdge? getEdge(String id) => _edges[id];
 
   final GlobalKey key = GlobalKey();
 
   void addNode(GraphNode node) {
+    node.offset ??=
+        Offset(0, defaultVerticalSpacing * (_nodes.length.toDouble() + 1));
+
     _nodes[node.id] = node;
     addEdgesForNode(node);
-    nodeOrder.add(node.id);
+    if (!nodeOrder.contains(node.id)) {
+      nodeOrder.add(node.id);
+    }
   }
 
   void addAllNodes(Iterable<GraphNode> nodes) {
@@ -44,10 +53,15 @@ class Graph {
     return _nodes.values.where((node) => node.type == type).toList();
   }
 
+  @protected
+  void addEdgeDirect(GraphEdge edge) {
+    _edges[edge.id] = edge;
+  }
+
   void addEdge(GraphEdge edge) {
     _edges[edge.id] = edge;
     getNode(edge.source)!.outgoingEdges.add(edge);
-    getNode(edge.target)!.incomingEdges.add(edge);
+    getNode(edge.target)?.incomingEdges.add(edge);
   }
 
   void addAllEdges(Iterable<GraphEdge> edges) {
@@ -61,9 +75,11 @@ class Graph {
 
   void removeNode(String id) {
     _nodes.remove(id);
-    _edges.removeWhere((key, value) => value.source == id || value.target == id);
+    _edges
+        .removeWhere((key, value) => value.source == id || value.target == id);
     nodeOrder.remove(id);
   }
+
   void removeEdge(String id) {
     _edges.remove(id);
     _nodes.forEach((key, value) => value.removeEdge(id));
@@ -89,7 +105,8 @@ class Graph {
 
   void setDefaultOffsets(double defaultWidth) {
     for (var element in nodes) {
-      element.translate(Offset(ancestorCount(element, 0) * defaultWidth, 0), element.size);
+      element.translate(
+          Offset(ancestorCount(element, 0) * defaultWidth, 0), element.size);
     }
   }
 
@@ -98,7 +115,7 @@ class Graph {
       return count;
     }
     if (node.incomingEdges.isNotEmpty) {
-      count ++;
+      count++;
     }
 
     var max = count;
@@ -115,10 +132,53 @@ class Graph {
     return max;
   }
 
+  void addChildNodesToGraph(GraphNode node, Graph subGraph) {
+    for (var edge in getNode(node.id)!.outgoingEdges) {
+      var target = getNode(edge.target)!;
+      GraphNode? newTarget;
+
+      if (subGraph.nodeMap.containsKey(target.id)) {
+        newTarget = subGraph.nodeMap[target.id];
+      } else {
+        newTarget = GraphNode(
+            id: target.id,
+            type: target.type,
+            data: target.data,
+            scale: scale,
+            order: subGraph.nodes.length);
+        subGraph.addNode(newTarget);
+      }
+
+      var newEdge = GraphEdge(
+          id: edge.id,
+          source: edge.source,
+          target: edge.target,
+          scale: scale,
+          sourceAnchor: node.outputAnchors!.first,
+          targetAnchor: newTarget!.inputAnchors!.first);
+      subGraph.addEdge(newEdge);
+
+      addChildNodesToGraph(newTarget, subGraph);
+    }
+  }
+
+  void addSubGraph(String nodeId) {
+    var subGraph = Graph.empty();
+    var node = getNode(nodeId)!;
+    var newNode = GraphNode(
+        id: node.id,
+        type: node.type,
+        data: node.data,
+        scale: scale,
+        order: subGraph.nodes.length);
+    subGraph.addNode(newNode);
+    addChildNodesToGraph(newNode, subGraph);
+    subGraphs[nodeId] = subGraph;
+  }
 
   void pop(String nodeId) {
-     if (nodeOrder.remove(nodeId)) {
-       nodeOrder.add(nodeId);
-     }
+    if (nodeOrder.remove(nodeId)) {
+      nodeOrder.add(nodeId);
+    }
   }
 }

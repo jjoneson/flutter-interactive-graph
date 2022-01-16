@@ -221,8 +221,8 @@ class FlowGraphDelegate extends FlowDelegate {
       var node = graph!.nodeMap[nodeId];
       context.paintChild(node!.order + 2,
           transform: Matrix4.translationValues(
-              (node.offset.dx + graph!.origin.dx) * graph!.scale,
-              (node.offset.dy + graph!.origin.dy) * graph!.scale,
+              (node.offset!.dx + graph!.origin.dx) * graph!.scale,
+              (node.offset!.dy + graph!.origin.dy) * graph!.scale,
               0));
     }
   }

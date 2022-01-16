@@ -3,16 +3,16 @@ import 'package:flutter_interactive_graph/model/node_anchor.dart';
 import 'package:flutter/material.dart';
 
 class GraphNode {
-  GraphNode(this.id, this.type, this.offset, this.data, this.scale, this.order);
+  GraphNode({required this.id, required this.type, this.offset, required this.data, required this.scale, required this.order});
 
   static GraphNode empty() {
-    return GraphNode('', '', const Offset(0, 0), null, 1, 0);
+    return GraphNode(id: '', type: '', offset: Offset.zero, data: '', scale: 1.0, order: 0);
   }
 
   final String id;
   final dynamic data;
   final String type;
-  Offset offset;
+  Offset? offset;
   double scale;
   GlobalKey key = GlobalKey();
   Size size = const Size(200, 100);
@@ -59,20 +59,20 @@ class GraphNode {
   List<GraphEdge> get incomingEdges => _incomingEdges;
 
   void createDefaultAnchors(Size size) {
-    addAnchor(NodeAnchorType.input, NodeAnchor(this, size.centerLeft(offset),'left-middle',  NodeAnchorType.input));
-    addAnchor(NodeAnchorType.output, NodeAnchor(this, size.centerRight(offset),'right-middle', NodeAnchorType.output));
+    addAnchor(NodeAnchorType.input, NodeAnchor(this, size.centerLeft(offset!),'left-middle',  NodeAnchorType.input));
+    addAnchor(NodeAnchorType.output, NodeAnchor(this, size.centerRight(offset!),'right-middle', NodeAnchorType.output));
   }
 
   bool checkDefaultAnchorOffsets(Size size) {
-    var centerLeft = size.centerLeft(offset);
-    var centerRight = size.centerRight(offset);
+    var centerLeft = size.centerLeft(offset!);
+    var centerRight = size.centerRight(offset!);
     return _anchors[NodeAnchorType.input]!.first.offset == centerLeft &&
         _anchors[NodeAnchorType.output]!.first.offset == centerRight;
   }
 
   void updateDefaultAnchors(Size size) {
-    _anchors[NodeAnchorType.input]?[0].updatePosition(size.centerLeft(offset));
-    _anchors[NodeAnchorType.output]?[0].updatePosition(size.centerRight(offset));
+    _anchors[NodeAnchorType.input]?[0].updatePosition(size.centerLeft(offset!));
+    _anchors[NodeAnchorType.output]?[0].updatePosition(size.centerRight(offset!));
   }
 
   // Returns all input anchors, but creates default anchors if none exist.
@@ -96,7 +96,11 @@ class GraphNode {
   }
 
   void translate(Offset offset, Size size) {
-    this.offset += offset;
+    if (this.offset == null) {
+      this.offset = offset;
+    } else {
+      this.offset = this.offset! + offset;
+    }
     // Update anchors
     for (var anchor in inputAnchors!) {
       anchor.translate(offset);
