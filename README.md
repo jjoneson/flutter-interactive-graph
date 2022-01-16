@@ -1,4 +1,4 @@
-Create interactive directed graphs using rich components with leveraging a generic model.
+Create interactive directed graphs using rich components, leveraging a generic model.
 
 ## Features
 * Allow arbitrary data to be mapped into node and edge objects using a simple interface.
