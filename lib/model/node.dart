@@ -3,7 +3,7 @@ import 'package:flutter_interactive_graph/model/node_anchor.dart';
 import 'package:flutter/material.dart';
 
 class GraphNode {
-  GraphNode({required this.id, required this.type, this.offset, required this.data, required this.scale, required this.order});
+  GraphNode({required this.id, required this.type, this.offset, required this.data, required this.scale, required this.order, this.draggable = true});
 
   static GraphNode empty() {
     return GraphNode(id: '', type: '', offset: Offset.zero, data: '', scale: 1.0, order: 0);
@@ -17,6 +17,7 @@ class GraphNode {
   GlobalKey key = GlobalKey();
   Size size = const Size(200, 100);
   final int order;
+  final bool draggable;
 
   final Map<NodeAnchorType, List<NodeAnchor>> _anchors = {};
   final List<GraphEdge> _outgoingEdges = [];
@@ -73,6 +74,10 @@ class GraphNode {
   void updateDefaultAnchors(Size size) {
     _anchors[NodeAnchorType.input]?[0].updatePosition(size.centerLeft(offset!));
     _anchors[NodeAnchorType.output]?[0].updatePosition(size.centerRight(offset!));
+    NodeAnchor? topCenter = getNodeAnchorById('top-center');
+    if (topCenter != null) {
+      topCenter.updatePosition(size.topCenter(offset!));
+    }
   }
 
   // Returns all input anchors, but creates default anchors if none exist.
@@ -93,6 +98,17 @@ class GraphNode {
       createDefaultAnchors(size);
       return _anchors[NodeAnchorType.output];
     }
+  }
+
+  NodeAnchor? getNodeAnchorById(String id) {
+    for (var anchor in _anchors.values) {
+      for (var a in anchor) {
+        if (a.id == id) {
+          return a;
+        }
+      }
+    }
+    return null;
   }
 
   void translate(Offset offset, Size size) {

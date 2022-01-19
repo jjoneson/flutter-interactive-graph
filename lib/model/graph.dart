@@ -173,7 +173,7 @@ class Graph {
         order: subGraph.nodes.length);
     subGraph.addNode(newNode);
     addChildNodesToGraph(newNode, subGraph);
-    subGraphs[nodeId] = subGraph;
+    subGraphs[nodeId] = subGraph..setDefaultOffsets(400);
   }
 
   void pop(String nodeId) {

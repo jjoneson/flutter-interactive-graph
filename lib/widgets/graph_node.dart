@@ -28,29 +28,31 @@ class GraphNodeWidget extends StatefulWidget {
 }
 
 class _GraphNodeWidgetState extends State<GraphNodeWidget> {
-
   @override
   Widget build(BuildContext context) {
-    return
-      Flex(
-    direction: Axis.vertical,
-    mainAxisSize: MainAxisSize.min,
-    children:[
-    Transform(
-          transform: Matrix4.identity()..scale(widget.scale, widget.scale, 1.0),
-          child: GestureDetector(
-            behavior: HitTestBehavior.deferToChild,
-            onPanUpdate: (details) {
-              setState(() {
-                widget.graphNode!.translate(Offset(
-                    details.delta.dx,
-                    details.delta.dy), widget.graphNode!.size);
-                widget.pop(widget.graphNode!.id);
-                widget.notify?.call();
-              });
-            },
-            child: widget.child,
-          ),
-        )]);
+    return Flex(
+        direction: Axis.vertical,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Transform(
+            transform: Matrix4.identity()
+              ..scale(widget.scale, widget.scale, 1.0),
+            child: GestureDetector(
+              behavior: HitTestBehavior.deferToChild,
+              onPanUpdate: (details) {
+                if (widget.graphNode!.draggable == false) return;
+
+                setState(() {
+                  widget.graphNode!.translate(
+                      Offset(details.delta.dx, details.delta.dy),
+                      widget.graphNode!.size);
+                  widget.pop(widget.graphNode!.id);
+                  widget.notify?.call();
+                });
+              },
+              child: widget.child,
+            ),
+          )
+        ]);
   }
 }

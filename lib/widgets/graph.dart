@@ -23,7 +23,9 @@ class GraphWidget extends StatefulWidget {
       required this.graph,
       required this.graphChildBuilder,
       required this.menuChildBuilder,
-      required this.dataset})
+      required this.dataset,
+      this.nodeTypes,
+      this.addNode})
       : super(key: key);
 
   Widget Function(GlobalKey key, String name, dynamic data, Graph graph,
@@ -31,6 +33,9 @@ class GraphWidget extends StatefulWidget {
 
   Widget Function(GlobalKey key, String name, dynamic data, Graph graph)?
       menuChildBuilder;
+
+  GraphNode Function(String type)? addNode;
+  List<String>? nodeTypes;
 
   @override
   GraphWidgetState createState() => GraphWidgetState();
@@ -100,6 +105,28 @@ class GraphWidgetState extends State<GraphWidget> {
                               ...graphNodes
                             ])
                       ]))),
+          Positioned(
+              bottom: 25,
+              right: 25,
+              child: PopupMenuButton(
+                  itemBuilder: (context) => widget.nodeTypes?.map((type) {
+                        return PopupMenuItem(
+                          value: type,
+                          child: Text(type),
+                        );
+                      }).toList() ??
+                      [],
+                  onSelected: (value) {
+                    if (widget.addNode != null) {
+                      String nodeType = value as String;
+                      widget.addNode!(nodeType);
+                    }
+                  },
+                  child: FloatingActionButton(
+                    backgroundColor: Theme.of(context).primaryColorDark,
+                    onPressed: () {},
+                    child: const Icon(Icons.add),
+                  ))),
           GraphMenuWidget(
               sidePanelOpen: sidePanelOpen,
               topMargin: widget.topMargin.toDouble(),
@@ -215,7 +242,6 @@ class FlowGraphDelegate extends FlowDelegate {
     context.paintChild(1);
 
     // need to paint the nodes in the order of nodeOrder
-
 
     for (var nodeId in graph!.nodeOrder) {
       var node = graph!.nodeMap[nodeId];

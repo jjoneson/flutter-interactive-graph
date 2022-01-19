@@ -19,6 +19,7 @@ class MetaGraphWidget extends StatefulWidget {
   final Graph graph;
 
   final String? error;
+  final List<String>? nodeTypes;
 
   const MetaGraphWidget({
     Key? key,
@@ -29,6 +30,7 @@ class MetaGraphWidget extends StatefulWidget {
     required this.graph,
     required this.error,
     required this.dataset,
+    this.nodeTypes,
   }) : super(key: key);
 
   @override
@@ -68,7 +70,8 @@ class _MetaGraphWidgetState extends State<MetaGraphWidget> {
               ? GraphWidget(
             key: _graphContainerKey,
             topMargin: widget.topMargin,
-            graph: _graph,
+            nodeTypes: widget.nodeTypes,
+            graph: widget.graph.subGraphs[selectedSubGraph] ?? widget.graph,
             graphChildBuilder: widget.graphChildBuilder,
             menuChildBuilder: widget.menuChildBuilder, dataset: widget.dataset)
               : Positioned(
@@ -137,8 +140,7 @@ class _MetaGraphWidgetState extends State<MetaGraphWidget> {
                                       onPressed: () {
                                         setState(() {
                                           selectedSubGraph = e.key;
-                                          _graph = widget.graph.subGraphs[e.key]!
-                                            ..setDefaultOffsets(400);
+                                          _graph = widget.graph.subGraphs[e.key];
                                           Future.delayed(
                                               const Duration(milliseconds: 500),
                                                   () {
