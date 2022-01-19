@@ -4,6 +4,7 @@ import 'package:flutter_interactive_graph/model/graph.dart';
 import 'package:flutter_interactive_graph/model/node.dart';
 import 'package:flutter_interactive_graph/widgets/graph_menu.dart';
 import 'package:flutter_interactive_graph/widgets/grid_painter.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 
 import 'edge_painter.dart';
 import 'graph_node.dart';
@@ -17,24 +18,26 @@ class GraphWidget extends StatefulWidget {
 
   final dynamic dataset;
 
-  GraphWidget(
-      {Key? key,
-      required this.topMargin,
-      required this.graph,
-      required this.graphChildBuilder,
-      required this.menuChildBuilder,
-      required this.dataset,
-      this.nodeTypes,
-      this.addNode})
+  GraphWidget({Key? key,
+    required this.topMargin,
+    required this.graph,
+    required this.graphChildBuilder,
+    required this.menuChildBuilder,
+    required this.dataset,
+    this.addNodeDialogBuilder,
+    this.nodeTypes})
       : super(key: key);
 
   Widget Function(GlobalKey key, String name, dynamic data, Graph graph,
       VoidCallback notify, GraphNode node, dynamic dataset) graphChildBuilder;
 
   Widget Function(GlobalKey key, String name, dynamic data, Graph graph)?
-      menuChildBuilder;
+  menuChildBuilder;
 
-  GraphNode Function(String type)? addNode;
+  Widget Function(BuildContext context, String nodeType)?
+  addNodeDialogBuilder;
+
+  // GraphNode Function(String type)? addNode;
   List<String>? nodeTypes;
 
   @override
@@ -45,6 +48,7 @@ class GraphWidgetState extends State<GraphWidget> {
   final GlobalKey _edgeKey = GlobalKey();
   final GlobalKey _flowKey = GlobalKey();
   bool sidePanelOpen = false;
+  ValueNotifier<bool> isDialOpen = ValueNotifier(false);
 
   @override
   void initState() {
@@ -53,11 +57,17 @@ class GraphWidgetState extends State<GraphWidget> {
 
   @override
   Widget build(BuildContext context) {
-    double xMax = MediaQuery.of(context).size.width;
-    double yMax = MediaQuery.of(context).size.height - widget.topMargin;
+    double xMax = MediaQuery
+        .of(context)
+        .size
+        .width;
+    double yMax = MediaQuery
+        .of(context)
+        .size
+        .height - widget.topMargin;
 
     List<GraphNodeWidget> graphNodes = _children(context);
-    // updateEdges();
+
     return Container(
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -106,27 +116,30 @@ class GraphWidgetState extends State<GraphWidget> {
                             ])
                       ]))),
           Positioned(
-              bottom: 25,
-              right: 25,
-              child: PopupMenuButton(
-                  itemBuilder: (context) => widget.nodeTypes?.map((type) {
-                        return PopupMenuItem(
-                          value: type,
-                          child: Text(type),
-                        );
-                      }).toList() ??
-                      [],
-                  onSelected: (value) {
-                    if (widget.addNode != null) {
-                      String nodeType = value as String;
-                      widget.addNode!(nodeType);
-                    }
-                  },
-                  child: FloatingActionButton(
-                    backgroundColor: Theme.of(context).primaryColorDark,
-                    onPressed: () {},
-                    child: const Icon(Icons.add),
-                  ))),
+              bottom: MediaQuery.of(context).size.height/20,
+              right: MediaQuery.of(context).size.height/20,
+              child: SpeedDial(
+                backgroundColor: Theme
+                    .of(context)
+                    .primaryColorDark,
+                icon: const Icon(Icons.add).icon,
+                openCloseDial: isDialOpen,
+                children: widget.nodeTypes?.map((type) {
+                  return SpeedDialChild(
+                      child: const Icon(Icons.add),
+                      backgroundColor: Theme
+                          .of(context)
+                          .primaryColor,
+                      label: type,
+                      onTap: () {
+                        if (widget.addNodeDialogBuilder != null) {
+                          showDialog<void>(context: context, builder: (context) =>
+                              widget.addNodeDialogBuilder!(context, type));
+                        }
+                      });
+                }).toList() ??
+                    [],
+              )),
           GraphMenuWidget(
               sidePanelOpen: sidePanelOpen,
               topMargin: widget.topMargin.toDouble(),
@@ -141,17 +154,24 @@ class GraphWidgetState extends State<GraphWidget> {
       return graphNodes;
     }
     graphNodes = widget.graph!.nodes
-        .map((node) => GraphNodeWidget(
-              graphNode: node,
-              topMargin: widget.topMargin,
-              scale: widget.graph!.scale,
-              origin: widget.graph!.origin,
-              child: widget.graphChildBuilder(node.key, node.id, node.data,
-                  widget.graph!, notify, node, widget.dataset),
-              pop: pop,
-              notify: notify,
-              childKey: node.key,
-            ))
+        .map((node) =>
+        GraphNodeWidget(
+          graphNode: node,
+          topMargin: widget.topMargin,
+          scale: widget.graph!.scale,
+          origin: widget.graph!.origin,
+          child: widget.graphChildBuilder(
+              node.key,
+              node.id,
+              node.data,
+              widget.graph!,
+              notify,
+              node,
+              widget.dataset),
+          pop: pop,
+          notify: notify,
+          childKey: node.key,
+        ))
         .toList();
     return graphNodes;
   }
@@ -163,43 +183,44 @@ class GraphWidgetState extends State<GraphWidget> {
 
   void _onPointerSignal(PointerSignalEvent pointerSignal) {
     GestureBinding.instance!.pointerSignalResolver.register(pointerSignal,
-        (PointerSignalEvent pointerSignal) {
-      if (pointerSignal is PointerScrollEvent) {
-        if (pointerSignal.scrollDelta.dy == 1) {
-          return;
-        }
+            (PointerSignalEvent pointerSignal) {
+          if (pointerSignal is PointerScrollEvent) {
+            if (pointerSignal.scrollDelta.dy == 1) {
+              return;
+            }
 
-        //pointer offset relative to origin
-        final Offset offset =
-            pointerSignal.position / widget.graph!.scale - widget.graph!.origin;
+            //pointer offset relative to origin
+            final Offset offset =
+                pointerSignal.position / widget.graph!.scale -
+                    widget.graph!.origin;
 
-        // zoom in
-        if (pointerSignal.scrollDelta.dy < 0) {
-          widget.graph!.scale += 0.06;
+            // zoom in
+            if (pointerSignal.scrollDelta.dy < 0) {
+              widget.graph!.scale += 0.06;
 
-          // zoom out
-        } else {
-          widget.graph!.scale -= 0.06;
-        }
+              // zoom out
+            } else {
+              widget.graph!.scale -= 0.06;
+            }
 
-        // move origin to keep pointer in same position
+            // move origin to keep pointer in same position
 
-        // return if widget scale is out of bounds
-        if (widget.graph!.scale < 0.1) {
-          widget.graph!.scale = 0.1;
-          return;
-        } else if (widget.graph!.scale > 1) {
-          widget.graph!.scale = 1;
-          return;
-        }
+            // return if widget scale is out of bounds
+            if (widget.graph!.scale < 0.1) {
+              widget.graph!.scale = 0.1;
+              return;
+            } else if (widget.graph!.scale > 1) {
+              widget.graph!.scale = 1;
+              return;
+            }
 
-        setState(() {
-          widget.graph!.scale = widget.graph!.scale.clamp(0.1, 1);
-          widget.graph!.origin =
-              pointerSignal.position / widget.graph!.scale - offset;
+            setState(() {
+              widget.graph!.scale = widget.graph!.scale.clamp(0.1, 1);
+              widget.graph!.origin =
+                  pointerSignal.position / widget.graph!.scale - offset;
+            });
+          }
         });
-      }
-    });
   }
 
   void toggleSidePanel() {

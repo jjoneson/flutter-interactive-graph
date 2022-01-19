@@ -13,7 +13,10 @@ class MetaGraphWidget extends StatefulWidget {
       VoidCallback notify, GraphNode node, dynamic tracker) graphChildBuilder;
 
   final Widget Function(GlobalKey key, String name, dynamic data, Graph graph)?
-  menuChildBuilder;
+      menuChildBuilder;
+
+  final Widget Function(BuildContext context, String nodeType)?
+      addNodeDialogBuilder;
 
   final Function(String searchString) onSearch;
   final Graph graph;
@@ -30,6 +33,7 @@ class MetaGraphWidget extends StatefulWidget {
     required this.graph,
     required this.error,
     required this.dataset,
+    this.addNodeDialogBuilder,
     this.nodeTypes,
   }) : super(key: key);
 
@@ -68,14 +72,17 @@ class _MetaGraphWidgetState extends State<MetaGraphWidget> {
         child: Stack(children: [
           widget.error == null
               ? GraphWidget(
-            key: _graphContainerKey,
-            topMargin: widget.topMargin,
-            nodeTypes: widget.nodeTypes,
-            graph: widget.graph.subGraphs[selectedSubGraph] ?? widget.graph,
-            graphChildBuilder: widget.graphChildBuilder,
-            menuChildBuilder: widget.menuChildBuilder, dataset: widget.dataset)
+                  key: _graphContainerKey,
+                  topMargin: widget.topMargin,
+                  nodeTypes: widget.nodeTypes,
+                  graph:
+                      widget.graph.subGraphs[selectedSubGraph] ?? widget.graph,
+                  graphChildBuilder: widget.graphChildBuilder,
+                  menuChildBuilder: widget.menuChildBuilder,
+                  addNodeDialogBuilder: widget.addNodeDialogBuilder,
+                  dataset: widget.dataset)
               : Positioned(
-              top: widget.topMargin * 3, child: Text(widget.error!)),
+                  top: widget.topMargin * 3, child: Text(widget.error!)),
           Positioned(
             child: Container(
               height: widget.topMargin.toDouble(),
@@ -110,15 +117,13 @@ class _MetaGraphWidgetState extends State<MetaGraphWidget> {
                       icon: const Icon(Icons.search)),
                   IconButton(
                     onPressed: () {
-                      setState(() {
-                      });
+                      setState(() {});
                     },
                     icon: const Icon(Icons.undo),
                   ),
                   IconButton(
                     onPressed: () {
-                      setState(() {
-                      });
+                      setState(() {});
                     },
                     icon: const Icon(Icons.redo),
                   ),
@@ -128,25 +133,25 @@ class _MetaGraphWidgetState extends State<MetaGraphWidget> {
                           child: ListView(
                               scrollDirection: Axis.horizontal,
                               children: [
-                                ...widget.graph.subGraphs.entries
-                                    .map((e) {
+                                ...widget.graph.subGraphs.entries.map((e) {
                                   return TextButton(
                                       style: TextButton.styleFrom(
                                         backgroundColor: selectedSubGraph ==
-                                            e.key
+                                                e.key
                                             ? Theme.of(context).highlightColor
                                             : null,
                                       ),
                                       onPressed: () {
                                         setState(() {
                                           selectedSubGraph = e.key;
-                                          _graph = widget.graph.subGraphs[e.key];
+                                          _graph =
+                                              widget.graph.subGraphs[e.key];
                                           Future.delayed(
                                               const Duration(milliseconds: 500),
-                                                  () {
-                                                _graphContainerKey.currentState
-                                                    ?.setState(() {});
-                                              });
+                                              () {
+                                            _graphContainerKey.currentState
+                                                ?.setState(() {});
+                                          });
                                         });
                                       },
                                       child: Text(e.key));
@@ -170,5 +175,4 @@ class _MetaGraphWidgetState extends State<MetaGraphWidget> {
           ),
         ]));
   }
-
 }

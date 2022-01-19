@@ -11,8 +11,8 @@ dependencies:
   flutter:
     sdk: flutter
 
-  tuple: ^2.0.0
   path_drawing: ^1.0.0
+  flutter_speed_dial: ^5.0.0+1
 
 dev_dependencies:
   flutter_test:

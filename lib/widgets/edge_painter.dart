@@ -1,8 +1,6 @@
-import 'dart:math';
-import 'package:flutter_interactive_graph/model/node.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_interactive_graph/model/node.dart';
 import 'package:path_drawing/path_drawing.dart';
-import 'package:tuple/tuple.dart';
 
 import 'graph_node.dart';
 
@@ -40,7 +38,8 @@ class EdgePainter extends CustomPainter {
         GraphNode sourceNode = edge.sourceAnchor.node;
         GraphNode targetNode = edge.targetAnchor.node;
 
-        Path path = orthogonalPath(start, end, mid, 10, sourceNode.size.height * scale, targetNode.size.height * scale);
+        Path path = orthogonalPath(start, end, mid, 10,
+            sourceNode.size.height * scale, targetNode.size.height * scale);
         path = dashPath(path,
             dashArray: CircularIntervalList<double>([dashSize, gapSize]));
         canvas.drawPath(path, paint);
@@ -48,7 +47,8 @@ class EdgePainter extends CustomPainter {
     }
   }
 
-  Path orthogonalPath(Offset start, Offset end, Offset mid, double padding, double sourceHeight, double targetHeight) {
+  Path orthogonalPath(Offset start, Offset end, Offset mid, double padding,
+      double sourceHeight, double targetHeight) {
     var curveDelta1 = padding;
     if ((start.dy - mid.dy).abs() < curveDelta1 * 4) {
       curveDelta1 = (start.dy - mid.dy).abs() / 4;
