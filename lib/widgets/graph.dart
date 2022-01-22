@@ -35,20 +35,10 @@ class GraphWidget extends StatefulWidget {
       this.startWithExpandedMenu = false})
       : super(key: key);
 
-  Widget Function(
-      GlobalKey key,
-      String name,
-      dynamic data,
-      Graph graph,
-      VoidCallback notify,
-      GraphNode node,
-      dynamic dataset) graphChildBuilder;
+  Widget Function(GlobalKey key, String name, dynamic data, Graph graph,
+      VoidCallback notify, GraphNode node, dynamic dataset) graphChildBuilder;
 
-  Widget Function(
-      GlobalKey key,
-      String name,
-      dynamic data,
-      Graph graph,
+  Widget Function(GlobalKey key, String name, dynamic data, Graph graph,
       dynamic dataset)? menuChildBuilder;
 
   Widget Function(BuildContext context, String nodeType)? addNodeDialogBuilder;

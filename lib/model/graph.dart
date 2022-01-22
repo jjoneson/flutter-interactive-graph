@@ -255,4 +255,14 @@ class Graph {
       edge.displayStatus = DisplayStatus.normal;
     }
   }
+
+  List<GraphNode> getChildren(String nodeId) {
+    var node = getNode(nodeId)!;
+    var children = <GraphNode>[];
+    for (var edge in node.outgoingEdges) {
+      children.add(getNode(edge.target)!);
+      children.addAll(getChildren(edge.target));
+    }
+    return children;
+  }
 }
