@@ -6,7 +6,8 @@ class GraphMenuWidget extends StatefulWidget {
   final bool sidePanelOpen;
   final double topMargin;
   final Graph? graph;
-  Widget Function(GlobalKey key, String name, dynamic data, Graph graph)?
+  final dynamic dataset;
+  Widget Function(GlobalKey key, String name, dynamic data, Graph graph, dynamic dataset)?
       menuChildBuilder;
 
   GraphMenuWidget(
@@ -14,8 +15,11 @@ class GraphMenuWidget extends StatefulWidget {
       required this.sidePanelOpen,
       required this.topMargin,
       required this.graph,
-      required this.menuChildBuilder})
+      required this.menuChildBuilder,
+      required this.dataset})
       : super(key: key);
+
+
 
   @override
   _GraphMenuWidgetState createState() => _GraphMenuWidgetState();
@@ -54,7 +58,7 @@ class _GraphMenuWidgetState extends State<GraphMenuWidget> {
                             child: ListView(
                               children: widget.graph!.nodes
                                   .map((e) => widget.menuChildBuilder!(
-                                      GlobalKey(), e.id, e.data, widget.graph!))
+                                      GlobalKey(), e.id, e.data, widget.graph!, widget.dataset))
                                   .toList(),
                             ),
                           ))),

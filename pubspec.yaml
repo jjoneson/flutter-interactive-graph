@@ -13,6 +13,9 @@ dependencies:
 
   path_drawing: ^1.0.0
   flutter_speed_dial: ^5.0.0+1
+  tuple: ^2.0.0
+  dotted_border: ^2.0.0+2
+  flutter_dropzone: ^3.0.5
 
 dev_dependencies:
   flutter_test:

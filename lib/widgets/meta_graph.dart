@@ -12,17 +12,21 @@ class MetaGraphWidget extends StatefulWidget {
   final Widget Function(GlobalKey key, String name, dynamic data, Graph graph,
       VoidCallback notify, GraphNode node, dynamic tracker) graphChildBuilder;
 
-  final Widget Function(GlobalKey key, String name, dynamic data, Graph graph)?
-      menuChildBuilder;
+  final Widget Function(GlobalKey key, String name, dynamic data, Graph graph,
+      dynamic dataset)? menuChildBuilder;
 
   final Widget Function(BuildContext context, String nodeType)?
       addNodeDialogBuilder;
+
+  final Function(String fileContents, String graphType)? handleFileDrop;
 
   final Function(String searchString) onSearch;
   final Graph graph;
 
   final String? error;
   final List<String>? nodeTypes;
+
+  final bool startWithExpandedMenu;
 
   const MetaGraphWidget({
     Key? key,
@@ -33,8 +37,10 @@ class MetaGraphWidget extends StatefulWidget {
     required this.graph,
     required this.error,
     required this.dataset,
+    this.handleFileDrop,
     this.addNodeDialogBuilder,
     this.nodeTypes,
+    this.startWithExpandedMenu = false,
   }) : super(key: key);
 
   @override
@@ -61,7 +67,7 @@ class _MetaGraphWidgetState extends State<MetaGraphWidget> {
   Widget build(BuildContext context) {
     double xMax = MediaQuery.of(context).size.width;
     double yMax = MediaQuery.of(context).size.height - widget.topMargin;
-    _graphContainerKey = widget.graph.key;
+    _graphContainerKey = _graph!.key;
 
     return Container(
         decoration: const BoxDecoration(
@@ -75,6 +81,8 @@ class _MetaGraphWidgetState extends State<MetaGraphWidget> {
                   key: _graphContainerKey,
                   topMargin: widget.topMargin,
                   nodeTypes: widget.nodeTypes,
+                  startWithExpandedMenu: widget.startWithExpandedMenu,
+                  handleFileDrop: widget.handleFileDrop,
                   graph:
                       widget.graph.subGraphs[selectedSubGraph] ?? widget.graph,
                   graphChildBuilder: widget.graphChildBuilder,
@@ -150,7 +158,8 @@ class _MetaGraphWidgetState extends State<MetaGraphWidget> {
                                               const Duration(milliseconds: 500),
                                               () {
                                             _graphContainerKey.currentState
-                                                ?.setState(() {});
+                                                ?.setState(() {
+                                            });
                                           });
                                         });
                                       },

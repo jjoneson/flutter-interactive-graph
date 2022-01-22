@@ -29,7 +29,7 @@ class EdgePainter extends CustomPainter {
         final end = (edge.targetAnchor.offset + origin) * scale;
 
         final paint = Paint()
-          ..color = Theme.of(context).primaryColorLight
+          ..color = Theme.of(context).primaryColorLight.withOpacity(edge.getOpacity())
           ..style = PaintingStyle.stroke
           ..strokeWidth = 3.0 * scale;
 

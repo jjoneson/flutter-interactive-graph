@@ -1,12 +1,22 @@
+import 'package:flutter_interactive_graph/model/display_status.dart';
 import 'package:flutter_interactive_graph/model/edge.dart';
 import 'package:flutter_interactive_graph/model/node_anchor.dart';
 import 'package:flutter/material.dart';
 
 class GraphNode {
-  GraphNode({required this.id, required this.type, this.offset, required this.data, required this.scale, required this.order, this.draggable = true});
+  GraphNode(
+      {required this.id,
+      required this.type,
+      this.offset,
+      required this.data,
+      required this.scale,
+      required this.order,
+      this.draggable = true,
+      this.drawOnGraph = true});
 
   static GraphNode empty() {
-    return GraphNode(id: '', type: '', offset: Offset.zero, data: '', scale: 1.0, order: 0);
+    return GraphNode(
+        id: '', type: '', offset: Offset.zero, data: '', scale: 1.0, order: 0);
   }
 
   final String id;
@@ -16,8 +26,12 @@ class GraphNode {
   double scale;
   GlobalKey key = GlobalKey();
   Size size = const Size(200, 100);
+  bool expanded = false;
+  DisplayStatus displayStatus = DisplayStatus.normal;
   final int order;
   final bool draggable;
+  final bool drawOnGraph;
+
 
   final Map<NodeAnchorType, List<NodeAnchor>> _anchors = {};
   final List<GraphEdge> _outgoingEdges = [];
@@ -51,17 +65,24 @@ class GraphNode {
     _incomingEdges.remove(edge);
   }
 
-  void removeEdge(String id){
+  void removeEdge(String id) {
     _outgoingEdges.removeWhere((e) => e.id == id);
     _incomingEdges.removeWhere((e) => e.id == id);
   }
 
   List<GraphEdge> get outgoingEdges => _outgoingEdges;
+
   List<GraphEdge> get incomingEdges => _incomingEdges;
 
   void createDefaultAnchors(Size size) {
-    addAnchor(NodeAnchorType.input, NodeAnchor(this, size.centerLeft(offset!),'left-middle',  NodeAnchorType.input));
-    addAnchor(NodeAnchorType.output, NodeAnchor(this, size.centerRight(offset!),'right-middle', NodeAnchorType.output));
+    addAnchor(
+        NodeAnchorType.input,
+        NodeAnchor(this, size.centerLeft(offset!), 'left-middle',
+            NodeAnchorType.input));
+    addAnchor(
+        NodeAnchorType.output,
+        NodeAnchor(this, size.centerRight(offset!), 'right-middle',
+            NodeAnchorType.output));
   }
 
   bool checkDefaultAnchorOffsets(Size size) {
@@ -73,7 +94,8 @@ class GraphNode {
 
   void updateDefaultAnchors(Size size) {
     _anchors[NodeAnchorType.input]?[0].updatePosition(size.centerLeft(offset!));
-    _anchors[NodeAnchorType.output]?[0].updatePosition(size.centerRight(offset!));
+    _anchors[NodeAnchorType.output]?[0]
+        .updatePosition(size.centerRight(offset!));
     NodeAnchor? topCenter = getNodeAnchorById('top-center');
     if (topCenter != null) {
       topCenter.updatePosition(size.topCenter(offset!));
@@ -125,5 +147,16 @@ class GraphNode {
       anchor.translate(offset);
     }
     updateDefaultAnchors(size);
+  }
+
+  double getOpacity() {
+    if (displayStatus == DisplayStatus.normal || displayStatus == DisplayStatus.highlighted) {
+      return 1;
+    } else if (displayStatus == DisplayStatus.hidden) {
+      return 0;
+    } else  if (displayStatus == DisplayStatus.faded) {
+      return 0.1;
+    }
+    return 1;
   }
 }

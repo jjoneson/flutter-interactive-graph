@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 
+import 'display_status.dart';
 import 'edge.dart';
 import 'node.dart';
 
@@ -30,6 +31,7 @@ class Graph {
   GraphNode? getNode(String id) => _nodes[id];
 
   GraphEdge? getEdge(String id) => _edges[id];
+  String graphType = "default";
 
   final GlobalKey key = GlobalKey();
 
@@ -39,7 +41,7 @@ class Graph {
 
     _nodes[node.id] = node;
     addEdgesForNode(node);
-    if (!nodeOrder.contains(node.id)) {
+    if (!nodeOrder.contains(node.id) && node.drawOnGraph) {
       nodeOrder.add(node.id);
     }
   }
@@ -111,7 +113,7 @@ class Graph {
   }
 
   int ancestorCount(GraphNode node, int count) {
-    if (count > 10) {
+    if (count > 100) {
       return count;
     }
     if (node.incomingEdges.isNotEmpty) {
@@ -149,6 +151,10 @@ class Graph {
         subGraph.addNode(newTarget);
       }
 
+      // if (newTarget?.incomingEdges.any((element) => element.id == edge.id) ?? false) {
+      //   continue;
+      // }
+
       var newEdge = GraphEdge(
           id: edge.id,
           source: edge.source,
@@ -163,6 +169,10 @@ class Graph {
   }
 
   void addSubGraph(String nodeId) {
+    subGraphs[nodeId] = getSubGraph(nodeId)..setDefaultOffsets(400);
+  }
+
+  Graph getSubGraph(String nodeId) {
     var subGraph = Graph.empty();
     var node = getNode(nodeId)!;
     var newNode = GraphNode(
@@ -173,12 +183,76 @@ class Graph {
         order: subGraph.nodes.length);
     subGraph.addNode(newNode);
     addChildNodesToGraph(newNode, subGraph);
-    subGraphs[nodeId] = subGraph..setDefaultOffsets(400);
+    return subGraph;
+  }
+
+  List<GraphNode> getExpandedNodes() {
+    var nodes = <GraphNode>[];
+    for (var node in this.nodes) {
+      if (node.expanded) {
+        nodes.add(node);
+      }
+    }
+    return nodes;
   }
 
   void pop(String nodeId) {
     if (nodeOrder.remove(nodeId)) {
       nodeOrder.add(nodeId);
+    }
+  }
+
+  void setDisplayStatusOnChildren(String nodeId, DisplayStatus displayStatus) {
+    var node = getNode(nodeId)!;
+    node.displayStatus = displayStatus;
+    for (var edge in node.outgoingEdges) {
+      edge.displayStatus = displayStatus;
+      setDisplayStatusOnChildren(edge.target, displayStatus);
+    }
+  }
+
+  void focusOnNodeTree(String nodeId) {
+    fadeAll();
+    setDisplayStatusOnChildren(nodeId, DisplayStatus.normal);
+  }
+
+  void focusOnNodeTrees(List<String> nodeIds) {
+    fadeAll();
+    for (var nodeId in nodeIds) {
+      setDisplayStatusOnChildren(nodeId, DisplayStatus.normal);
+    }
+  }
+
+  void focusOnExpandedNodes() {
+    fadeAll();
+    var expandedNodes = getExpandedNodes();
+    if (expandedNodes.isNotEmpty) {
+      for (var node in expandedNodes) {
+        setDisplayStatusOnChildren(node.id, DisplayStatus.normal);
+      }
+    } else {
+      resetDisplayStatus();
+    }
+  }
+
+  void fadeAll() {
+    for (var node in nodes) {
+      node.displayStatus = DisplayStatus.faded;
+      for (var edge in node.outgoingEdges) {
+        edge.displayStatus = DisplayStatus.faded;
+      }
+      for (var edge in node.incomingEdges) {
+        edge.displayStatus = DisplayStatus.faded;
+      }
+    }
+  }
+
+  void resetDisplayStatus() {
+    for (var node in nodes) {
+      node.displayStatus = DisplayStatus.normal;
+    }
+    for (var edge in edges) {
+      edge.displayStatus = DisplayStatus.normal;
     }
   }
 }

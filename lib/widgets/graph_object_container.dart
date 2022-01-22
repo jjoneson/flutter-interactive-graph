@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_interactive_graph/model/display_status.dart';
 import 'package:flutter_interactive_graph/model/graph.dart';
 import 'package:flutter_interactive_graph/model/node.dart';
 
@@ -36,13 +37,6 @@ class GraphObjectContainer extends StatefulWidget {
 
 class _GraphObjectContainerState extends State<GraphObjectContainer>
     with SingleTickerProviderStateMixin {
-  bool? isExpanded;
-
-  @override
-  void initState() {
-    super.initState();
-    isExpanded = widget.startExpanded;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,6 +46,7 @@ class _GraphObjectContainerState extends State<GraphObjectContainer>
       children: [
         Flexible(
           fit: FlexFit.loose,
+          child: Opacity(opacity: widget.node.getOpacity(),
           child: Container(
             decoration: BoxDecoration(
                 color: Colors.white70.withOpacity(1),
@@ -59,7 +54,7 @@ class _GraphObjectContainerState extends State<GraphObjectContainer>
                 borderRadius: BorderRadius.circular(5)),
             alignment: Alignment.centerLeft,
             constraints: BoxConstraints(
-              maxWidth: isExpanded!
+              maxWidth: widget.node.expanded
                   ? widget.maxWidth
                   : widget.minWidth,
               minWidth: widget.minWidth,
@@ -83,7 +78,7 @@ class _GraphObjectContainerState extends State<GraphObjectContainer>
                   child: ListTile(
                     minVerticalPadding: 0,
                     leading: Icon(
-                      isExpanded!
+                      widget.node.expanded
                           ? Icons.keyboard_arrow_up
                           : Icons.keyboard_arrow_down,
                       color: Colors.black87,
@@ -101,7 +96,7 @@ class _GraphObjectContainerState extends State<GraphObjectContainer>
                 AnimatedSize(
                     curve: Curves.easeIn,
                     duration: const Duration(milliseconds: 100),
-                    child: isExpanded!
+                    child: widget.node.expanded
                         ? Column(
                       mainAxisSize: MainAxisSize.min,
                       children: widget.children,
@@ -110,7 +105,7 @@ class _GraphObjectContainerState extends State<GraphObjectContainer>
               ],
             ),
           ),
-        ),
+        )),
       ],
     );
   }
@@ -118,7 +113,9 @@ class _GraphObjectContainerState extends State<GraphObjectContainer>
   void toggleExpanded() {
     setState(() {
       widget.graph.pop(widget.node.id);
-      isExpanded = !isExpanded!;
+      widget.node.expanded = !widget.node.expanded;
+      widget.graph.focusOnExpandedNodes();
+
       Future.delayed(const Duration(milliseconds: 100), () {
         widget.notify?.call();
       });
