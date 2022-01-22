@@ -2,6 +2,7 @@ import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dropzone/flutter_dropzone.dart';
+import 'package:flutter_interactive_graph/model/display_status.dart';
 import 'package:flutter_interactive_graph/model/graph.dart';
 import 'package:flutter_interactive_graph/model/node.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
@@ -304,6 +305,7 @@ class FlowGraphDelegate extends FlowDelegate {
 
     for (var nodeId in graph!.nodeOrder) {
       var node = graph!.nodeMap[nodeId];
+      if (node?.displayStatus == DisplayStatus.hidden) continue;
       context.paintChild(node!.order + 2,
           transform: Matrix4.translationValues(
               (node.offset!.dx + graph!.origin.dx) * graph!.scale,

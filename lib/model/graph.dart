@@ -247,6 +247,18 @@ class Graph {
     }
   }
 
+  void hideAll() {
+    for (var node in nodes) {
+      node.displayStatus = DisplayStatus.hidden;
+      for (var edge in node.outgoingEdges) {
+        edge.displayStatus = DisplayStatus.hidden;
+      }
+      for (var edge in node.incomingEdges) {
+        edge.displayStatus = DisplayStatus.hidden;
+      }
+    }
+  }
+
   void resetDisplayStatus() {
     for (var node in nodes) {
       node.displayStatus = DisplayStatus.normal;
@@ -256,9 +268,9 @@ class Graph {
     }
   }
 
-  List<GraphNode> getChildren(String nodeId) {
+  Set<GraphNode> getChildren(String nodeId) {
     var node = getNode(nodeId)!;
-    var children = <GraphNode>[];
+    var children = <GraphNode>{};
     for (var edge in node.outgoingEdges) {
       children.add(getNode(edge.target)!);
       children.addAll(getChildren(edge.target));

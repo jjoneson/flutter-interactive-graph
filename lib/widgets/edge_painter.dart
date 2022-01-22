@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_interactive_graph/model/display_status.dart';
 import 'package:flutter_interactive_graph/model/node.dart';
 import 'package:path_drawing/path_drawing.dart';
 
@@ -25,6 +26,10 @@ class EdgePainter extends CustomPainter {
 
     for (var node in nodes) {
       for (var edge in node.graphNode!.outgoingEdges) {
+        if (edge.displayStatus == DisplayStatus.hidden) {
+          continue;
+        }
+
         final start = (edge.sourceAnchor.offset + origin) * scale;
         final end = (edge.targetAnchor.offset + origin) * scale;
 

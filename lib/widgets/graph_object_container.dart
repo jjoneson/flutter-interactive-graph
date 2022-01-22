@@ -111,26 +111,30 @@ class _GraphObjectContainerState extends State<GraphObjectContainer>
       widget.graph.pop(widget.node.id);
       widget.node.expanded = !widget.node.expanded;
       widget.graph.focusOnExpandedNodes();
-      pullChildNodes(widget.node);
+      if (!widget.node.expanded) {
+        pullChildNodes(widget.node);
+      }
 
-      Future.delayed(const Duration(milliseconds: 100), () {
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (widget.node.expanded) {
+          pushChildNodes(widget.node);
+        }
         widget.notify?.call();
-        setState(() {
-            pushChildNodes(widget.node);
-        });
       });
     });
   }
 
   void pushChildNodes(GraphNode parent) {
     for (var child in widget.graph.getChildren(parent.id)) {
-        child.translate(Offset(parent.size.width, parent.size.height/2), child.size);
+      child.translate(
+          Offset(parent.size.width, 0), child.size * widget.graph.scale);
     }
   }
 
   void pullChildNodes(GraphNode parent) {
     for (var child in widget.graph.getChildren(parent.id)) {
-      child.translate(Offset(parent.size.width * -1, parent.size.height/2 * -1), child.size);
+      child.translate(
+          Offset(parent.size.width, 0) * -1, child.size * widget.graph.scale);
     }
   }
 }
