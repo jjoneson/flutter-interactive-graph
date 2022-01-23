@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_interactive_graph/helpers/pointer_scroll_behavior.dart';
 import 'package:flutter_interactive_graph/model/graph.dart';
 import 'package:flutter_interactive_graph/model/node.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
 
 import 'graph.dart';
 
@@ -9,14 +10,13 @@ class MetaGraphWidget extends StatefulWidget {
   final dynamic dataset;
 
   final double topMargin;
-  final Widget Function(GlobalKey key, String name, dynamic data, Graph graph,
-      VoidCallback notify, GraphNode node, dynamic tracker) graphChildBuilder;
+  final Widget Function(
+          GlobalKey key, String name, dynamic data, Graph graph, VoidCallback notify, GraphNode node, dynamic tracker)
+      graphChildBuilder;
 
-  final Widget Function(GlobalKey key, String name, dynamic data, Graph graph,
-      dynamic dataset)? menuChildBuilder;
+  final Widget Function(GlobalKey key, String name, dynamic data, Graph graph, dynamic dataset)? menuChildBuilder;
 
-  final Widget Function(BuildContext context, String nodeType)?
-      addNodeDialogBuilder;
+  final Widget Function(BuildContext context, String nodeType)? addNodeDialogBuilder;
 
   final Function(String fileContents, String graphType)? handleFileDrop;
 
@@ -50,15 +50,18 @@ class MetaGraphWidget extends StatefulWidget {
 class _MetaGraphWidgetState extends State<MetaGraphWidget> {
   bool sidePanelOpen = false;
   GlobalKey _graphContainerKey = GlobalKey();
-  String selectedSubGraph = "";
+  String _selectedSubGraph = "";
   String _searchString = "";
   Graph? _graph;
+  final GlobalKey _subGraphListKey = GlobalKey();
+  final ScrollController _subGraphListController = ScrollController();
+  final Map<String, GlobalKey> _subGraphKeys = {};
 
   @override
   void initState() {
     super.initState();
     if (widget.graph.subGraphs.isNotEmpty) {
-      selectedSubGraph = widget.graph.subGraphs.keys.first;
+      _selectedSubGraph = widget.graph.subGraphs.keys.first;
     }
     _graph = widget.graph;
   }
@@ -68,6 +71,9 @@ class _MetaGraphWidgetState extends State<MetaGraphWidget> {
     double xMax = MediaQuery.of(context).size.width;
     double yMax = MediaQuery.of(context).size.height - widget.topMargin;
     _graphContainerKey = _graph!.key;
+    if (widget.graph.subGraphs.isNotEmpty && !widget.graph.subGraphs.containsKey(_selectedSubGraph)) {
+      _selectedSubGraph = widget.graph.subGraphs.keys.first;
+    }
 
     return Container(
         decoration: const BoxDecoration(
@@ -83,46 +89,69 @@ class _MetaGraphWidgetState extends State<MetaGraphWidget> {
                   nodeTypes: widget.nodeTypes,
                   startWithExpandedMenu: widget.startWithExpandedMenu,
                   handleFileDrop: widget.handleFileDrop,
-                  graph:
-                      widget.graph.subGraphs[selectedSubGraph] ?? widget.graph,
+                  graph: widget.graph.subGraphs[_selectedSubGraph] ?? widget.graph,
                   graphChildBuilder: widget.graphChildBuilder,
                   menuChildBuilder: widget.menuChildBuilder,
                   addNodeDialogBuilder: widget.addNodeDialogBuilder,
                   dataset: widget.dataset)
-              : Positioned(
-                  top: widget.topMargin * 3, child: Text(widget.error!)),
+              : Positioned(top: widget.topMargin * 3, child: Text(widget.error!)),
           Positioned(
             child: Container(
               height: widget.topMargin.toDouble(),
               width: xMax,
               decoration: const BoxDecoration(
                   color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black12, blurRadius: 10, spreadRadius: 5)
-                  ],
-                  border: Border(
-                      bottom: BorderSide(color: Colors.white70, width: 1.0))),
+                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, spreadRadius: 5)],
+                  border: Border(bottom: BorderSide(color: Colors.white70, width: 1.0))),
               child: Row(
                 children: [
                   SizedBox(
-                      width: xMax / 10,
-                      child: TextField(
-                        decoration: const InputDecoration(
-                            contentPadding: EdgeInsets.all(18),
-                            border: InputBorder.none,
-                            hintText: 'Enter Search String'),
-                        onChanged: (value) {
-                          _searchString = value;
-                        },
-                      )),
-                  IconButton(
-                      onPressed: () {
-                        if (_searchString.isNotEmpty) {
-                          widget.onSearch(_searchString);
-                        }
+                    width: xMax / 6,
+                    child: TypeAheadField(
+                      textFieldConfiguration: TextFieldConfiguration(
+                          autofocus: false,
+                          style: DefaultTextStyle.of(context).style.copyWith(
+                                fontSize: 16,
+                                fontStyle: FontStyle.italic,
+                              ),
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                          )),
+                      suggestionsCallback: (searchString) {
+                        return _getSuggestedSubGraphs(searchString);
+                        // return widget.graph.subGraphs.keys
+                        //     .where((subGraph) => subGraph.toLowerCase().contains(searchString.toLowerCase()))
+                        //     .toList();
                       },
-                      icon: const Icon(Icons.search)),
+                      itemBuilder: (context, suggestion) {
+                        return ListTile(
+                          title: Text(suggestion.toString()),
+                        );
+                      },
+                      onSuggestionSelected: (suggestion) {
+                        setState(() {
+                          _selectedSubGraph = suggestion.toString();
+                          Scrollable.ensureVisible(_subGraphKeys[suggestion.toString()]!.currentContext!, duration: const Duration(milliseconds: 1000));
+                        });
+                      },
+                    ),
+                    // TextField(
+                    //   decoration: const InputDecoration(
+                    //       contentPadding: EdgeInsets.all(18),
+                    //       border: InputBorder.none,
+                    //       hintText: 'Enter Search String'),
+                    //   onChanged: (value) {
+                    //     _searchString = value;
+                    //   },
+                    // )
+                  ),
+                  // IconButton(
+                  //     onPressed: () {
+                  //       if (_searchString.isNotEmpty) {
+                  //         // widget.onSearch(_searchString);
+                  //       }
+                  //     },
+                  //     icon: const Icon(Icons.search)),
                   IconButton(
                     onPressed: () {
                       setState(() {});
@@ -138,42 +167,39 @@ class _MetaGraphWidgetState extends State<MetaGraphWidget> {
                   Expanded(
                       child: ScrollConfiguration(
                           behavior: PointerScrollBehavior(),
-                          child: ListView(
+                          child: SingleChildScrollView(
+                              key: _subGraphListKey,
                               scrollDirection: Axis.horizontal,
-                              children: [
+                              child: Row(children: [
                                 ...widget.graph.subGraphs.entries.map((e) {
+                                  if (!_subGraphKeys.containsKey(e.key)) {
+                                    _subGraphKeys[e.key] = GlobalKey();
+                                  }
                                   return TextButton(
+                                      key: _subGraphKeys[e.key],
                                       style: TextButton.styleFrom(
-                                        backgroundColor: selectedSubGraph ==
-                                                e.key
-                                            ? Theme.of(context).highlightColor
-                                            : null,
+                                        backgroundColor:
+                                            _selectedSubGraph == e.key ? Theme.of(context).highlightColor : null,
                                       ),
                                       onPressed: () {
                                         setState(() {
-                                          selectedSubGraph = e.key;
-                                          _graph =
-                                              widget.graph.subGraphs[e.key];
-                                          Future.delayed(
-                                              const Duration(milliseconds: 500),
-                                              () {
-                                            _graphContainerKey.currentState
-                                                ?.setState(() {
-                                            });
+                                          _selectedSubGraph = e.key;
+                                          _graph = widget.graph.subGraphs[e.key];
+                                          Future.delayed(const Duration(milliseconds: 500), () {
+                                            _graphContainerKey.currentState?.setState(() {});
                                           });
                                         });
                                       },
                                       child: Text(e.key));
                                 }).toList()
-                              ]))),
+                              ])))),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       IconButton(
                         icon: const Icon(Icons.menu),
                         onPressed: () {
-                          (_graphContainerKey.currentState! as GraphWidgetState)
-                              .toggleSidePanel();
+                          (_graphContainerKey.currentState! as GraphWidgetState).toggleSidePanel();
                         },
                       ),
                     ],
@@ -183,5 +209,22 @@ class _MetaGraphWidgetState extends State<MetaGraphWidget> {
             ),
           ),
         ]));
+  }
+
+  List<String> _getSuggestedSubGraphs(String searchContents) {
+    return widget.graph.subGraphs.entries
+        .where((subGraph) {
+          if (subGraph.key.toLowerCase().contains(searchContents.toLowerCase())) {
+            return true;
+          }
+
+          if (subGraph.value.nodes.any((node) => node.id.toLowerCase().contains(searchContents.toLowerCase()))) {
+            return true;
+          }
+
+          return false;
+        })
+        .map((e) => e.key)
+        .toList();
   }
 }

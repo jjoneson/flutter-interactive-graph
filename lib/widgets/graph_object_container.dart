@@ -21,7 +21,7 @@ class GraphObjectContainer extends StatefulWidget {
 
   final List<Widget> children;
 
-  final String title;
+  final Widget title;
   final String? subtitle;
   final double minWidth;
   final double maxWidth;
@@ -85,7 +85,7 @@ class _GraphObjectContainerState extends State<GraphObjectContainer>
                         horizontalTitleGap: 5,
                         trailing: Icon(widget.icon,
                             color: Theme.of(context).primaryColor),
-                        title: Text(widget.title),
+                        title: widget.title,
                         subtitle: Text(widget.subtitle ?? ''),
                       ),
                     ),

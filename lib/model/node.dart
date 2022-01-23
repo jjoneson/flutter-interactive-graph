@@ -9,7 +9,7 @@ class GraphNode {
       required this.type,
       this.offset,
       required this.data,
-      required this.scale,
+      this.scale = 1,
       required this.order,
       this.draggable = true,
       this.drawOnGraph = true});

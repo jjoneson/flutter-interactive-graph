@@ -20,7 +20,7 @@ class Graph {
 
   final Map<String, GraphNode> _nodes;
   final Map<String, GraphEdge> _edges;
-  final List<String> nodeOrder = [];
+  final Set<String> nodeOrder = {};
 
   Map<String, GraphNode> get nodeMap => _nodes;
 

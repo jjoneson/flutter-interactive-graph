@@ -16,6 +16,8 @@ dependencies:
   tuple: ^2.0.0
   dotted_border: ^2.0.0+2
   flutter_dropzone: ^3.0.5
+  flutter_typeahead: ^3.2.4
+
 
 dev_dependencies:
   flutter_test:
