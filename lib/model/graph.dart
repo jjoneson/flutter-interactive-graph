@@ -21,6 +21,7 @@ class Graph {
   final Map<String, GraphNode> _nodes;
   final Map<String, GraphEdge> _edges;
   final Set<String> nodeOrder = {};
+  bool adjustingNodes = false;
 
   Map<String, GraphNode> get nodeMap => _nodes;
 
@@ -103,6 +104,15 @@ class Graph {
 
   void updateAllAnchors() {
     _nodes.forEach((key, value) => value.updateDefaultAnchors(value.size));
+  }
+
+  bool anchorsAreCorrectlyPositioned() {
+    for (var node in nodes) {
+      if (!node.checkDefaultAnchorOffsets(node.size)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   void setDefaultOffsets(double defaultWidth) {
@@ -276,5 +286,9 @@ class Graph {
       children.addAll(getChildren(edge.target));
     }
     return children;
+  }
+
+  bool hasEdge(GraphNode parent, GraphNode target) {
+    return parent.outgoingEdges.any((element) => element.target == target.id);
   }
 }

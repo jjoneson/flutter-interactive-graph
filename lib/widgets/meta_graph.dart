@@ -4,6 +4,7 @@ import 'package:flutter_interactive_graph/model/graph.dart';
 import 'package:flutter_interactive_graph/model/node.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 
+
 import 'graph.dart';
 
 class MetaGraphWidget extends StatefulWidget {
@@ -18,7 +19,7 @@ class MetaGraphWidget extends StatefulWidget {
 
   final Widget Function(BuildContext context, String nodeType)? addNodeDialogBuilder;
 
-  final Function(String fileContents, String graphType)? handleFileDrop;
+  final Function(String fileContents, String fileExtension, String graphType)? handleFileDrop;
 
   final Function(String searchString) onSearch;
   final Graph graph;
@@ -54,7 +55,7 @@ class _MetaGraphWidgetState extends State<MetaGraphWidget> {
   String _searchString = "";
   Graph? _graph;
   final GlobalKey _subGraphListKey = GlobalKey();
-  final ScrollController _subGraphListController = ScrollController();
+  // final ScrollController _subGraphListController = ScrollController();
   final Map<String, GlobalKey> _subGraphKeys = {};
 
   @override
@@ -168,6 +169,7 @@ class _MetaGraphWidgetState extends State<MetaGraphWidget> {
                       child: ScrollConfiguration(
                           behavior: PointerScrollBehavior(),
                           child: SingleChildScrollView(
+                            primary: false,
                               key: _subGraphListKey,
                               scrollDirection: Axis.horizontal,
                               child: Row(children: [

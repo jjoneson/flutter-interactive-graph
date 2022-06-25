@@ -22,13 +22,15 @@ class GraphEdge {
 
   double scale;
 
+  bool pulsing = true;
+
   double getOpacity() {
     if (displayStatus == DisplayStatus.normal || displayStatus == DisplayStatus.highlighted) {
       return 1;
     } else if (displayStatus == DisplayStatus.hidden) {
       return 0;
     } else  if (displayStatus == DisplayStatus.faded) {
-      return 0.1;
+      return 0.15;
     }
     return 1;
   }

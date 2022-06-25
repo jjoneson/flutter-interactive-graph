@@ -1,3 +1,5 @@
+import 'dart:html';
+
 import 'package:flutter_interactive_graph/model/display_status.dart';
 import 'package:flutter_interactive_graph/model/edge.dart';
 import 'package:flutter_interactive_graph/model/node_anchor.dart';
@@ -20,9 +22,10 @@ class GraphNode {
   }
 
   final String id;
-  final dynamic data;
+  dynamic data;
   final String type;
   Offset? offset;
+  Offset? targetOffset;
   double scale;
   GlobalKey key = GlobalKey();
   Size size = const Size(200, 100);
@@ -149,13 +152,19 @@ class GraphNode {
     updateDefaultAnchors(size);
   }
 
+  void smoothTranslate(Offset targetOffset, Size size) {
+    if (offset != null) {
+      this.targetOffset = offset! + targetOffset;
+    }
+  }
+
   double getOpacity() {
     if (displayStatus == DisplayStatus.normal || displayStatus == DisplayStatus.highlighted) {
       return 1;
     } else if (displayStatus == DisplayStatus.hidden) {
       return 0;
     } else  if (displayStatus == DisplayStatus.faded) {
-      return 0.1;
+      return 0.55;
     }
     return 1;
   }

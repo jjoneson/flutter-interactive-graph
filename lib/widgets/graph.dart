@@ -1,10 +1,12 @@
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_dropzone/flutter_dropzone.dart';
 import 'package:flutter_interactive_graph/model/display_status.dart';
 import 'package:flutter_interactive_graph/model/graph.dart';
 import 'package:flutter_interactive_graph/model/node.dart';
+import 'package:flutter_interactive_graph/widgets/edge_widget.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 
 import 'edge_painter.dart';
@@ -36,15 +38,15 @@ class GraphWidget extends StatefulWidget {
       this.startWithExpandedMenu = false})
       : super(key: key);
 
-  Widget Function(GlobalKey key, String name, dynamic data, Graph graph,
-      VoidCallback notify, GraphNode node, dynamic dataset) graphChildBuilder;
+  Widget Function(
+          GlobalKey key, String name, dynamic data, Graph graph, VoidCallback notify, GraphNode node, dynamic dataset)
+      graphChildBuilder;
 
-  Widget Function(GlobalKey key, String name, dynamic data, Graph graph,
-      dynamic dataset)? menuChildBuilder;
+  Widget Function(GlobalKey key, String name, dynamic data, Graph graph, dynamic dataset)? menuChildBuilder;
 
   Widget Function(BuildContext context, String nodeType)? addNodeDialogBuilder;
 
-  void Function(String fileContents, String graphType)? handleFileDrop;
+  void Function(String fileContents, String fileExtension, String graphType)? handleFileDrop;
 
   // GraphNode Function(String type)? addNode;
   List<String>? nodeTypes;
@@ -53,24 +55,67 @@ class GraphWidget extends StatefulWidget {
   GraphWidgetState createState() => GraphWidgetState();
 }
 
-class GraphWidgetState extends State<GraphWidget> {
+class GraphWidgetState extends State<GraphWidget> with SingleTickerProviderStateMixin {
   final GlobalKey _edgeKey = GlobalKey();
   final GlobalKey _flowKey = GlobalKey();
   late DropzoneViewController _dropzoneController;
   bool _dropZoneHighlighted = false;
   bool sidePanelOpen = false;
   ValueNotifier<bool> isDialOpen = ValueNotifier(false);
+  AnimationController? _graphNodeMoveController;
+  Animation? _graphNodeMoveAnimation;
 
   @override
   void initState() {
     super.initState();
+    _graphNodeMoveController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+    _graphNodeMoveAnimation = Tween(begin: 0.0, end: 1.0).animate(_graphNodeMoveController!);
+    _graphNodeMoveAnimation!.addListener(() {
+      setState(() {
+        if (_graphNodeMoveAnimation!.status == AnimationStatus.completed) {
+          _graphNodeMoveController!.reset();
+          widget.graph!.adjustingNodes = false;
+          for (final node in widget.graph!.nodes) {
+            node.targetOffset = null;
+          }
+        } else if (widget.graph!.adjustingNodes && _graphNodeMoveAnimation!.status != AnimationStatus.completed) {
+          for (final node in widget.graph!.nodes) {
+            if (node.targetOffset == null) {
+              continue;
+            }
+            node.translate(
+              Offset(
+                _graphNodeMoveAnimation?.value * (node.targetOffset!.dx - node.offset!.dx),
+                _graphNodeMoveAnimation?.value * (node.targetOffset!.dy - node.offset!.dy),
+              ), node.size * widget.graph!.scale);
+            // node.targetOffset = Offset(node.targetOffset!.dx - node.targetOffset!.dx * _graphNodeMoveAnimation!.value,
+            //     node.targetOffset!.dy - node.targetOffset!.dy * _graphNodeMoveAnimation!.value);
+
+          }
+          _graphNodeMoveController!.forward();
+         }
+      });
+    });
     sidePanelOpen = widget.startWithExpandedMenu;
+  }
+
+  @override
+  void dispose() {
+    _graphNodeMoveController!.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     double xMax = MediaQuery.of(context).size.width;
     double yMax = MediaQuery.of(context).size.height - widget.topMargin;
+
+    if (widget.graph!.adjustingNodes && _graphNodeMoveAnimation!.status != AnimationStatus.completed) {
+      _graphNodeMoveController!.forward();
+    }
 
     List<GraphNodeWidget> graphNodes = _children(context);
 
@@ -88,38 +133,44 @@ class GraphWidgetState extends State<GraphWidget> {
                   behavior: HitTestBehavior.deferToChild,
                   onPanUpdate: (details) {
                     setState(() {
-                      widget.graph!.origin = widget.graph!.origin +
-                          details.delta / widget.graph!.scale;
+                      widget.graph!.origin = widget.graph!.origin + details.delta / widget.graph!.scale;
                     });
                   },
-                  child: Stack(
-                      alignment: Alignment.center,
-                      fit: StackFit.loose,
-                      clipBehavior: Clip.hardEdge,
-                      children: [
-                        Flow(
-                            key: _flowKey,
-                            delegate: FlowGraphDelegate(graph: widget.graph),
-                            children: [
-                              CustomPaint(
-                                size: Size(xMax, yMax),
-                                painter: GridPainter(
-                                    context: context,
-                                    scale: widget.graph!.scale,
-                                    origin: widget.graph!.origin),
-                              ),
-                              CustomPaint(
-                                key: _edgeKey,
-                                size: Size(xMax, yMax),
-                                painter: EdgePainter(
-                                    nodes: graphNodes,
-                                    origin: widget.graph!.origin,
-                                    scale: widget.graph!.scale,
-                                    context: context),
-                              ),
-                              ...graphNodes
-                            ])
-                      ]))),
+                  child:
+                      Stack(alignment: Alignment.center, fit: StackFit.loose, clipBehavior: Clip.hardEdge, children: [
+                    Flow(
+                        key: _flowKey,
+                        delegate: FlowGraphDelegate(
+                          pushPullAnimation: _graphNodeMoveAnimation!,
+                            graph: widget.graph,
+                            adjustAnchors: () =>
+                                // setState(() {
+                                  widget.graph!.updateAllAnchors()
+                                // })
+                                ),
+                        children: [
+                          CustomPaint(
+                            size: Size(xMax, yMax),
+                            painter:
+                                GridPainter(context: context, scale: widget.graph!.scale, origin: widget.graph!.origin),
+                          ),
+                          EdgeWidget(
+                              graph: widget.graph!,
+                              context: context,
+                              size: Size(xMax, yMax)),
+                          // CustomPaint(
+                          //   key: _edgeKey,
+                          //   size: Size(xMax, yMax),
+                          //   painter: EdgePainter(
+                          //       nodes: graphNodes,
+                          //       origin: widget.graph!.origin,
+                          //       scale: widget.graph!.scale,
+                          //       context: context,
+                          //       pulsePosition: _edgePulseAnimation!.value),
+                          // ),
+                          ...graphNodes
+                        ])
+                  ]))),
           Positioned(
               bottom: MediaQuery.of(context).size.height / 20,
               right: MediaQuery.of(context).size.height / 20 +
@@ -137,9 +188,7 @@ class GraphWidgetState extends State<GraphWidget> {
                           onTap: () {
                             if (widget.addNodeDialogBuilder != null) {
                               showDialog<void>(
-                                  context: context,
-                                  builder: (context) => widget
-                                      .addNodeDialogBuilder!(context, type));
+                                  context: context, builder: (context) => widget.addNodeDialogBuilder!(context, type));
                             }
                           });
                     }).toList() ??
@@ -167,9 +216,7 @@ class GraphWidgetState extends State<GraphWidget> {
                     Center(
                         child: Icon(
                       Icons.add,
-                      color: _dropZoneHighlighted
-                          ? Colors.black38
-                          : Colors.black12,
+                      color: _dropZoneHighlighted ? Colors.black38 : Colors.black12,
                       size: 40,
                     )),
                   ])))
@@ -188,8 +235,11 @@ class GraphWidgetState extends State<GraphWidget> {
           onDrop: (data) async {
             if (widget.handleFileDrop != null) {
               final bytes = await _dropzoneController.getFileData(data);
-              widget.handleFileDrop!(
-                  String.fromCharCodes(bytes), widget.graph!.graphType);
+              final fileName = await _dropzoneController.getFilename(data);
+              var fileExtension = fileName.split('.').last;
+
+
+              widget.handleFileDrop!(String.fromCharCodes(bytes), fileExtension, widget.graph!.graphType);
             }
           },
         ),
@@ -206,8 +256,8 @@ class GraphWidgetState extends State<GraphWidget> {
               topMargin: widget.topMargin,
               scale: widget.graph!.scale,
               origin: widget.graph!.origin,
-              child: widget.graphChildBuilder(node.key, node.id, node.data,
-                  widget.graph!, notify, node, widget.dataset),
+              child:
+                  widget.graphChildBuilder(node.key, node.id, node.data, widget.graph!, notify, node, widget.dataset),
               pop: pop,
               notify: notify,
               childKey: node.key,
@@ -222,16 +272,14 @@ class GraphWidgetState extends State<GraphWidget> {
   }
 
   void _onPointerSignal(PointerSignalEvent pointerSignal) {
-    GestureBinding.instance!.pointerSignalResolver.register(pointerSignal,
-        (PointerSignalEvent pointerSignal) {
+    GestureBinding.instance!.pointerSignalResolver.register(pointerSignal, (PointerSignalEvent pointerSignal) {
       if (pointerSignal is PointerScrollEvent) {
         if (pointerSignal.scrollDelta.dy == 1) {
           return;
         }
 
         //pointer offset relative to origin
-        final Offset offset =
-            pointerSignal.position / widget.graph!.scale - widget.graph!.origin;
+        final Offset offset = pointerSignal.position / widget.graph!.scale - widget.graph!.origin;
 
         // zoom in
         if (pointerSignal.scrollDelta.dy < 0) {
@@ -255,8 +303,7 @@ class GraphWidgetState extends State<GraphWidget> {
 
         setState(() {
           widget.graph!.scale = widget.graph!.scale.clamp(0.1, 1);
-          widget.graph!.origin =
-              pointerSignal.position / widget.graph!.scale - offset;
+          widget.graph!.origin = pointerSignal.position / widget.graph!.scale - offset;
         });
       }
     });
@@ -279,8 +326,10 @@ class GraphWidgetState extends State<GraphWidget> {
 
 class FlowGraphDelegate extends FlowDelegate {
   final Graph? graph;
+  final Function() adjustAnchors;
+  final Animation pushPullAnimation;
 
-  FlowGraphDelegate({this.graph}) : super();
+  FlowGraphDelegate({this.graph, required this.adjustAnchors, required this.pushPullAnimation}) : super();
 
   @override
   void paintChildren(FlowPaintingContext context) {
@@ -296,7 +345,6 @@ class FlowGraphDelegate extends FlowDelegate {
       }
       i++;
     }
-    graph!.updateAllAnchors();
     //draw the background and the edges
     context.paintChild(0);
     context.paintChild(1);
@@ -307,10 +355,14 @@ class FlowGraphDelegate extends FlowDelegate {
       var node = graph!.nodeMap[nodeId];
       if (node?.displayStatus == DisplayStatus.hidden) continue;
       context.paintChild(node!.order + 2,
-          transform: Matrix4.translationValues(
-              (node.offset!.dx + graph!.origin.dx) * graph!.scale,
-              (node.offset!.dy + graph!.origin.dy) * graph!.scale,
-              0));
+          transform: Matrix4.translationValues((node.offset!.dx + graph!.origin.dx) * graph!.scale,
+              ( node.offset!.dy + graph!.origin.dy) * graph!.scale, 0));
+    }
+
+    if (!graph!.anchorsAreCorrectlyPositioned()) {
+      SchedulerBinding.instance?.addPostFrameCallback((_) {
+        adjustAnchors();
+      });
     }
   }
 

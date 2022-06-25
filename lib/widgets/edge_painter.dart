@@ -1,5 +1,9 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_interactive_graph/model/display_status.dart';
+import 'package:flutter_interactive_graph/model/edge.dart';
+import 'package:flutter_interactive_graph/model/graph.dart';
 import 'package:flutter_interactive_graph/model/node.dart';
 import 'package:path_drawing/path_drawing.dart';
 
@@ -7,16 +11,17 @@ import 'graph_node.dart';
 
 class EdgePainter extends CustomPainter {
   EdgePainter(
-      {required this.nodes,
-      required this.origin,
-      required this.scale,
-      required this.context})
+      {
+      required this.graph,
+      required this.context,
+      this.pulsePosition = 0.0,
+      })
       : super();
 
-  final List<GraphNodeWidget> nodes;
-  final Offset origin;
-  final double scale;
+  // final List<GraphNodeWidget> nodes;
+  final Graph graph;
   final BuildContext context;
+  final double pulsePosition;
   double weight = 0.08;
 
   @override
@@ -24,19 +29,21 @@ class EdgePainter extends CustomPainter {
     const double dashSize = 10;
     const double gapSize = 4;
 
-    for (var node in nodes) {
-      for (var edge in node.graphNode!.outgoingEdges) {
+    Map<GraphEdge, Path> edgePathsMap = {};
+
+    for (var node in graph.nodes) {
+      for (var edge in node.outgoingEdges) {
         if (edge.displayStatus == DisplayStatus.hidden) {
           continue;
         }
 
-        final start = (edge.sourceAnchor.offset + origin) * scale;
-        final end = (edge.targetAnchor.offset + origin) * scale;
+        final start = (edge.sourceAnchor.offset + graph.origin) * graph.scale;
+        final end = (edge.targetAnchor.offset + graph.origin) * graph.scale;
 
         final paint = Paint()
           ..color = Theme.of(context).primaryColorLight.withOpacity(edge.getOpacity())
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 3.0 * scale;
+          ..strokeWidth = 3.0 * graph.scale;
 
         Offset mid = (start + (end - start) / 8);
 
@@ -44,11 +51,19 @@ class EdgePainter extends CustomPainter {
         GraphNode targetNode = edge.targetAnchor.node;
 
         Path path = orthogonalPath(start, end, mid, 10,
-            sourceNode.size.height * scale, targetNode.size.height * scale);
-        path = dashPath(path,
+            sourceNode.size.height * graph.scale, targetNode.size.height * graph.scale);
+
+        if (edge.pulsing) {
+          edgePathsMap[edge] = path;
+        }
+
+        var dPath = dashPath(path,
             dashArray: CircularIntervalList<double>([dashSize, gapSize]));
-        canvas.drawPath(path, paint);
+        canvas.drawPath(dPath, paint);
       }
+    }
+    for (var edge in edgePathsMap.entries) {
+      drawPulse(canvas, edge.key,  edge.value, pulsePosition, graph.scale);
     }
   }
 
@@ -108,6 +123,42 @@ class EdgePainter extends CustomPainter {
       ..quadraticBezierTo(endX2, end.dy, endX1, end.dy)
       ..lineTo(end.dx, end.dy);
   }
+
+    void drawPulse(Canvas canvas, GraphEdge edge, Path path, double pulsePosition, double scale) {
+    var height = 6 * scale;
+
+      var metrics = path.computeMetrics();
+
+      // get total length of path
+      double totalLength = 0.0;
+      for (var metric in metrics.toList()) {
+        totalLength += metric.length;
+      }
+      // get point on path at given length
+      double length = 0.0;
+      for (var metric in metrics.toList()) {
+        length += metric.length;
+        if (length >= totalLength * pulsePosition) {
+          var position = totalLength * pulsePosition - length + metric.length;
+          Tangent? point = metric.getTangentForOffset(position);
+
+          if (point != null) {
+            var outerPaint = Paint()
+              ..color = Theme.of(context).primaryColorLight.withOpacity(edge.getOpacity())
+              ..style = PaintingStyle.fill;
+            canvas.drawCircle(point.position, height+height/2, outerPaint);
+            var innerPaint = Paint()
+              ..color = Colors.white
+              ..style = PaintingStyle.fill;
+            canvas.drawCircle(point.position, height, innerPaint);
+
+          }
+        }
+      }
+    }
+
+    @override
+
 
   @override
   bool shouldRepaint(EdgePainter oldDelegate) {
