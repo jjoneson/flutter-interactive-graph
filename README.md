@@ -12,11 +12,9 @@ Example Usage:
 
 ![Demo Gif](api-hero-demo.gif)
 
-## Getting started
+Live Demo:
+
+https://api-hero.dev
 
 
-## Usage
-
-
-## Additional information
 
